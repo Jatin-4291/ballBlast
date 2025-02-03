@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 
-function Bullets({ xPosition, yPosition }) {
+function Bullets({ xPosition, yPosition, isVisible }) {
+  if (!isVisible) return null; // Return null if isVisible is false
   return (
+    // Render only if isVisible is tru
     <div
       style={{
         position: "absolute",

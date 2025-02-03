@@ -14,6 +14,7 @@ function Game() {
   const colorArray = ["red", "blue", "green", "yellow", "purple", "orange"];
   const ballSizes = [20, 120, 450, 25, 26]; // Size options for the balls
   const gravity = 1; // Gravity for the balls
+  const [gamePaused, setGamePaused] = useState(false);
 
   // Update the yPosition of a bullet
   const updateYPosition = (id, newYPosition) => {
@@ -36,138 +37,163 @@ function Game() {
     if (e.key === " ") setIsFiring(false);
   };
 
-  // Spacebar event listeners
+  // Pause game logic
+  const pauseGame = (e) => {
+    if (e.key === "Escape") {
+      setGamePaused((prev) => !prev); // Toggle pause state
+    }
+  };
+
+  // Event listeners for spacebar and escape key
   useEffect(() => {
     window.addEventListener("keydown", handleFiring);
     window.addEventListener("keyup", handleNotFiring);
+    window.addEventListener("keydown", pauseGame);
 
     return () => {
       window.removeEventListener("keydown", handleFiring);
       window.removeEventListener("keyup", handleNotFiring);
+      window.removeEventListener("keydown", pauseGame);
     };
   }, []);
 
   // Fire bullets when isFiring is true
   useEffect(() => {
-    if (isFiring) {
+    if (!gamePaused && isFiring) {
       const interval = setInterval(() => {
         setBullets((prev) => [
           ...prev,
-          { id: Date.now(), xPosition: position, yPosition: 500 }, // Start bullets at y=500
+          {
+            id: Date.now(),
+            xPosition: position,
+            yPosition: 500,
+            isVisible: true,
+          }, // Start bullets at y=500
         ]);
       }, 1000 / bulletsPerSecond);
 
       return () => clearInterval(interval);
     }
-  }, [isFiring, position]);
+  }, [isFiring, position, gamePaused]);
 
-  //bullet hit balls
+  // Bullet-Ball Collision Handling
   useEffect(() => {
     const interval = setInterval(() => {
-      setBullets((prevBullets) => {
-        return prevBullets
-          .map((bullet) => {
-            const newYPosition = bullet.yPosition - bulletSpeed;
+      if (!gamePaused) {
+        setBullets((prevBullets) => {
+          return prevBullets
+            .map((bullet) => {
+              let bulletHit = false;
 
-            let bulletHit = false;
-
-            // Check if the bullet hits any ball
-            setBalls(
-              (prevBalls) =>
+              setBalls((prevBalls) =>
                 prevBalls
                   .map((ball) => {
                     const distance = Math.hypot(
                       ball.xPosition - bullet.xPosition,
-                      ball.yPosition - newYPosition
+                      ball.yPosition - bullet.yPosition
                     );
 
-                    if (distance < ball.size / 2) {
-                      bulletHit = true; // Mark the bullet for removal
-                      return { ...ball, size: Math.max(0, ball.size - 1) }; // Reduce ball size
+                    const visualSize = 50; // Fixed size of the ball in pixels
+
+                    if (distance <= visualSize / 2) {
+                      bulletHit = true; // Bullet hit detected
+                      return {
+                        ...ball,
+                        size: Math.max(0, ball.size - 1),
+                        yPosition: ball.yPosition - 1,
+                        yVelocity: ball.yVelocity - 2,
+                      };
                     }
                     return ball;
                   })
-                  .filter((ball) => ball.size > 0) // Remove balls that reach size 0
-            );
+                  .filter((ball) => ball.size > 0)
+              );
 
-            return bulletHit ? null : { ...bullet, yPosition: newYPosition };
-          })
-          .filter(Boolean); // Remove bullets that hit a ball
-      });
-    }, 50); // Update every 50ms for smooth movement
+              return bulletHit ? { ...bullet, isVisible: false } : bullet;
+            })
+            .filter((bullet) => bullet.isVisible); // Remove invisible bullets
+        });
+      }
+    }, 50);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [gamePaused]);
 
   // Generate balls with random positions and sizes
   useEffect(() => {
     const interval = setInterval(() => {
-      setBalls((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          xPosition: Math.random() * innerWidth, // Random x position
-          yPosition: Math.random() * 100, // Random y position
-          color: colorArray[Math.floor(Math.random() * colorArray.length)],
-          size: ballSizes[Math.floor(Math.random() * ballSizes.length)], // Random size from ballSizes array
-          yVelocity: 0, // Initial y velocity
-          xVelocity: 2, // Initial x velocity
-        },
-      ]);
-    }, 10000); // Generate a ball every 3 seconds
+      if (!gamePaused) {
+        setBalls((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            xPosition: Math.random() * window.innerWidth, // Random x position
+            yPosition: Math.random() * 100, // Random y position
+            color: colorArray[Math.floor(Math.random() * colorArray.length)],
+            size: ballSizes[Math.floor(Math.random() * ballSizes.length)], // Random size from ballSizes array
+            yVelocity: 0, // Initial y velocity
+            xVelocity: 2, // Initial x velocity
+          },
+        ]);
+      }
+    }, 10000); // Generate a ball every 10 seconds
 
     return () => clearInterval(interval);
-  }, []); // Empty dependency array to run this effect only once on mount
+  }, [gamePaused]);
 
   // Continuously move balls downwards
   useEffect(() => {
     const interval = setInterval(() => {
-      setBalls((prev) =>
-        prev.map((ball) => {
-          let newYVelocity = ball.yVelocity + gravity;
-          let newXPosition = ball.xPosition + ball.xVelocity;
-          let newYPosition = ball.yPosition + newYVelocity;
+      if (!gamePaused) {
+        setBalls((prev) =>
+          prev.map((ball) => {
+            let newYVelocity = ball.yVelocity + gravity;
+            let newXPosition = ball.xPosition + ball.xVelocity;
+            let newYPosition = ball.yPosition + newYVelocity;
 
-          // Bounce off the bottom
-          if (newYPosition >= window.innerHeight - 150) {
-            newYVelocity = -ball.yVelocity; // Reverse velocity with damping
-            newYPosition = window.innerHeight - 150; // Keep it above the ground
-          }
+            // Bounce off the bottom
+            if (newYPosition >= window.innerHeight - 150) {
+              newYVelocity = -ball.yVelocity; // Reverse velocity with damping
+              newYPosition = window.innerHeight - 150; // Keep it above the ground
+            }
 
-          // Bounce off walls
-          if (newXPosition <= 0 || newXPosition >= window.innerWidth - 50) {
-            ball.xVelocity = -ball.xVelocity;
-          }
+            // Bounce off walls
+            if (newXPosition <= 0 || newXPosition >= window.innerWidth - 50) {
+              ball.xVelocity = -ball.xVelocity;
+            }
 
-          return {
-            ...ball,
-            yPosition: newYPosition,
-            yVelocity: newYVelocity,
-            xPosition: newXPosition,
-          };
-        })
-      );
+            return {
+              ...ball,
+              yPosition: newYPosition,
+              yVelocity: newYVelocity,
+              xPosition: newXPosition,
+            };
+          })
+        );
+      }
     }, 50); // Update every 50ms for smooth movement
 
-    return () => clearInterval(interval); // Cleanup on unmount
-  }, []);
+    return () => clearInterval(interval);
+  }, [gamePaused]);
 
   // Continuously move bullets upwards
   useEffect(() => {
     const interval = setInterval(() => {
-      setBullets(
-        (prev) =>
-          prev
-            .map((bullet) => ({
-              ...bullet,
-              yPosition: bullet.yPosition - bulletSpeed,
-            }))
-            .filter((bullet) => bullet.yPosition > 0) // Remove bullets off-screen
-      );
+      if (!gamePaused) {
+        setBullets(
+          (prev) =>
+            prev
+              .map((bullet) => ({
+                ...bullet,
+                yPosition: bullet.yPosition - bulletSpeed,
+              }))
+              .filter((bullet) => bullet.yPosition > 0) // Remove bullets off-screen
+        );
+      }
     }, 50); // Update every 50ms for smooth movement
 
-    return () => clearInterval(interval); // Cleanup on unmount
-  }, []);
+    return () => clearInterval(interval);
+  }, [gamePaused]);
 
   return (
     <section
@@ -195,10 +221,9 @@ function Game() {
           {bullets.map((bullet) => (
             <Bullets
               key={bullet.id}
-              id={bullet.id}
               xPosition={bullet.xPosition}
               yPosition={bullet.yPosition}
-              updateYPosition={updateYPosition} // Update handled at the Game level
+              isVisible={bullet.isVisible} // Pass isVisible prop
             />
           ))}
         </div>
@@ -206,6 +231,12 @@ function Game() {
         <div className="relative z-0">
           <Cannon />
         </div>
+        {/* Pause Overlay */}
+        {gamePaused && (
+          <div className="absolute inset-0 flex justify-center items-center bg-black bg-opacity-50 z-20">
+            <p className="text-4xl font-bold">Game Paused</p>
+          </div>
+        )}
       </div>
     </section>
   );

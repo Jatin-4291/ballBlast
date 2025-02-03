@@ -36,7 +36,8 @@ function Cannon() {
     <div className="relative mt-[500px] h-20 w-screen">
       <p
         ref={cannonRef}
-        className="absolute text-black"
+        className="absolute text-black text-4xl"
+        width="100"
         style={{
           left: `${position}px`,
         }}
