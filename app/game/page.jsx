@@ -1,3 +1,4 @@
+"use client";
 import Bullets from "@components/Bullets";
 import Cannon from "@components/Cannon";
 import { useEffect, useState, useRef } from "react";
