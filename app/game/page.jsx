@@ -1,12 +1,12 @@
 import Bullets from "@components/Bullets";
 import Cannon from "@components/Cannon";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { usePosition } from "@context/positionContext";
 import Ball from "@components/Ball";
 
 function Game() {
-  const bulletsPerSecond = 5; // Number of bullets to fire per second
-  const bulletSpeed = 5; // Speed of bullets
+  const bulletsPerSecond = 10; // Number of bullets to fire per second
+  const bulletSpeed = 10; // Speed of bullets
   const [isFiring, setIsFiring] = useState(false);
   const [bullets, setBullets] = useState([]); // Track the bullets
   const [balls, setBalls] = useState([]); // Track the balls
@@ -15,6 +15,19 @@ function Game() {
   const ballSizes = [20, 120, 450, 25, 26]; // Size options for the balls
   const gravity = 1; // Gravity for the balls
   const [gamePaused, setGamePaused] = useState(false);
+
+  // Use refs to store the current state of bullets and balls
+  const bulletsRef = useRef(bullets);
+  const ballsRef = useRef(balls);
+
+  // Update refs whenever state changes
+  useEffect(() => {
+    bulletsRef.current = bullets;
+  }, [bullets]);
+
+  useEffect(() => {
+    ballsRef.current = balls;
+  }, [balls]);
 
   // Update the yPosition of a bullet
   const updateYPosition = (id, newYPosition) => {
@@ -65,7 +78,7 @@ function Game() {
           ...prev,
           {
             id: Date.now(),
-            xPosition: position,
+            xPosition: position + 60,
             yPosition: 500,
             isVisible: true,
           }, // Start bullets at y=500
@@ -80,44 +93,94 @@ function Game() {
   useEffect(() => {
     const interval = setInterval(() => {
       if (!gamePaused) {
-        setBullets((prevBullets) => {
-          return prevBullets
-            .map((bullet) => {
-              let bulletHit = false;
+        const currentBullets = bulletsRef.current;
+        const currentBalls = ballsRef.current;
 
-              setBalls((prevBalls) =>
-                prevBalls
-                  .map((ball) => {
-                    const distance = Math.hypot(
-                      ball.xPosition - bullet.xPosition,
-                      ball.yPosition - bullet.yPosition
-                    );
+        const updatedBullets = currentBullets.map((bullet) => {
+          let bulletHit = false;
 
-                    const visualSize = 50; // Fixed size of the ball in pixels
+          const updatedBalls = currentBalls.map((ball) => {
+            const distance = Math.hypot(
+              ball.xPosition - bullet.xPosition,
+              ball.yPosition - bullet.yPosition
+            );
 
-                    if (distance <= visualSize / 2) {
-                      bulletHit = true; // Bullet hit detected
-                      return {
-                        ...ball,
-                        size: Math.max(0, ball.size - 1),
-                        yPosition: ball.yPosition - 1,
-                        yVelocity: ball.yVelocity - 2,
-                      };
-                    }
-                    return ball;
-                  })
-                  .filter((ball) => ball.size > 0)
-              );
+            const visualSize = 50; // Fixed size of the ball in pixels
 
-              return bulletHit ? { ...bullet, isVisible: false } : bullet;
-            })
-            .filter((bullet) => bullet.isVisible); // Remove invisible bullets
+            if (distance <= visualSize / 2) {
+              bulletHit = true; // Bullet hit detected
+              return {
+                ...ball,
+                size: Math.max(0, ball.size - 1),
+                yPosition: ball.yPosition - 10,
+                yVelocity: ball.yVelocity * 0.8,
+              };
+            }
+            return ball;
+          });
+
+          setBalls(updatedBalls.filter((ball) => ball.size > 0));
+
+          return bulletHit ? { ...bullet, isVisible: false } : bullet;
         });
+
+        setBullets(updatedBullets.filter((bullet) => bullet.isVisible)); // Remove invisible bullets
       }
     }, 50);
 
     return () => clearInterval(interval);
   }, [gamePaused]);
+
+  //cannon ball collision
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!gamePaused) {
+        const currentBalls = ballsRef.current;
+
+        const updatedBalls = currentBalls.map((ball) => {
+          // Cannon dimensions (based on the SVG cannon)
+          const cannonWidth = 120; // Width of the cannon
+          const cannonHeight = 1000; // Height of the cannon
+
+          // Cannon's center position
+          const cannonCenterX = position + cannonWidth / 2; // Center X of the cannon
+          const cannonCenterY = 50 + cannonHeight / 2; // Center Y of the cannon (top is at y=50)
+
+          // Ball's center position
+          const ballCenterX = ball.xPosition + 50 / 2; // Center X of the ball
+          const ballCenterY = ball.yPosition + 50 / 2; // Center Y of the ball
+
+          // Distance between cannon and ball centers
+          const distance = Math.hypot(
+            ballCenterX - cannonCenterX,
+            ballCenterY - cannonCenterY
+          );
+
+          // Collision detection (cannon radius + ball radius)
+          const collisionDistance = cannonWidth / 2 + 50 / 2;
+          console.log(
+            distance,
+            cannonCenterX,
+            ballCenterX,
+            ballCenterY,
+            cannonCenterY,
+            collisionDistance
+          );
+          if (distance <= collisionDistance - 60) {
+            console.log("Collision detected!");
+            setGamePaused(true); // Pause the game
+            alert("Game Over"); // Show game over alert
+          }
+
+          return ball;
+        });
+
+        setBalls(updatedBalls);
+      }
+    }, 50); // Check for collisions every 50ms
+
+    return () => clearInterval(interval);
+  }, [gamePaused, position]);
 
   // Generate balls with random positions and sizes
   useEffect(() => {
