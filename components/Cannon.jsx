@@ -5,9 +5,11 @@ import { usePosition } from "@context/positionContext"; // Correct usage of useP
 
 function Cannon() {
   const { position, setPosition } = usePosition(); // Get position from context
-  const [width, setWidth] = useState(window.innerWidth);
+  const [width, setWidth] = useState(0);
   const cannonRef = useRef(null);
-
+  useEffect(() => {
+    setWidth(window.innerWidth);
+  }, []);
   const handleMove = (e) => {
     const cannonWidth = cannonRef.current ? cannonRef.current.offsetWidth : 0;
 
@@ -19,7 +21,7 @@ function Cannon() {
   };
 
   useEffect(() => {
-    const handleResize = () => setWidth(window.innerWidth);
+    const handleResize = () => setWidth(width);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Game from "./game/page";
+import dynamic from "@node_modules/next/dynamic";
+const Game = dynamic(() => import("./game/page"), { ssr: false });
 
 const Home = () => {
   const [isPlaying, setIsPlaying] = useState(false);
