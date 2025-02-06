@@ -1,3 +1,4 @@
+"use client";
 function Ball({ id, size, xPosition, yPosition, color }) {
   return (
     <div

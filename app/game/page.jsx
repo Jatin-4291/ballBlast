@@ -16,6 +16,8 @@ function Game() {
   const ballSizes = [20, 120, 450, 25, 26]; // Size options for the balls
   const gravity = 1; // Gravity for the balls
   const [gamePaused, setGamePaused] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
 
   // Use refs to store the current state of bullets and balls
   const bulletsRef = useRef(bullets);
@@ -191,7 +193,7 @@ function Game() {
           ...prev,
           {
             id: Date.now(),
-            xPosition: Math.random() * window.innerWidth, // Random x position
+            xPosition: Math.random() * windowWidth, // Random x position
             yPosition: Math.random() * 100, // Random y position
             color: colorArray[Math.floor(Math.random() * colorArray.length)],
             size: ballSizes[Math.floor(Math.random() * ballSizes.length)], // Random size from ballSizes array
@@ -216,13 +218,13 @@ function Game() {
             let newYPosition = ball.yPosition + newYVelocity;
 
             // Bounce off the bottom
-            if (newYPosition >= window.innerHeight - 150) {
+            if (newYPosition >= windowHeight - 150) {
               newYVelocity = -ball.yVelocity; // Reverse velocity with damping
-              newYPosition = window.innerHeight - 150; // Keep it above the ground
+              newYPosition = windowHeight - 150; // Keep it above the ground
             }
 
             // Bounce off walls
-            if (newXPosition <= 0 || newXPosition >= window.innerWidth - 50) {
+            if (newXPosition <= 0 || newXPosition >= windowWidth - 50) {
               ball.xVelocity = -ball.xVelocity;
             }
 
