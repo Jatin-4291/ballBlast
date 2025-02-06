@@ -16,12 +16,30 @@ function Game() {
   const ballSizes = [20, 120, 450, 25, 26]; // Size options for the balls
   const gravity = 1; // Gravity for the balls
   const [gamePaused, setGamePaused] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+  const [windowWidth, setWindowWidth] = useState(0);
+  const [windowHeight, setWindowHeight] = useState(0);
 
   // Use refs to store the current state of bullets and balls
   const bulletsRef = useRef(bullets);
   const ballsRef = useRef(balls);
+
+  // Initialize window dimensions and handle resizing
+  useEffect(() => {
+    // Set initial window dimensions
+    setWindowWidth(window.innerWidth);
+    setWindowHeight(window.innerHeight);
+
+    // Update dimensions on window resize
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      setWindowHeight(window.innerHeight);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup event listener
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Update refs whenever state changes
   useEffect(() => {
@@ -134,7 +152,7 @@ function Game() {
     return () => clearInterval(interval);
   }, [gamePaused]);
 
-  //cannon ball collision
+  // Cannon-Ball Collision Handling
   useEffect(() => {
     const interval = setInterval(() => {
       if (!gamePaused) {
@@ -161,16 +179,7 @@ function Game() {
 
           // Collision detection (cannon radius + ball radius)
           const collisionDistance = cannonWidth / 2 + 50 / 2;
-          console.log(
-            distance,
-            cannonCenterX,
-            ballCenterX,
-            ballCenterY,
-            cannonCenterY,
-            collisionDistance
-          );
           if (distance <= collisionDistance - 60) {
-            console.log("Collision detected!");
             setGamePaused(true); // Pause the game
             alert("Game Over"); // Show game over alert
           }
@@ -205,7 +214,7 @@ function Game() {
     }, 10000); // Generate a ball every 10 seconds
 
     return () => clearInterval(interval);
-  }, [gamePaused]);
+  }, [gamePaused, windowWidth]);
 
   // Continuously move balls downwards
   useEffect(() => {
@@ -240,7 +249,7 @@ function Game() {
     }, 50); // Update every 50ms for smooth movement
 
     return () => clearInterval(interval);
-  }, [gamePaused]);
+  }, [gamePaused, windowHeight, windowWidth]);
 
   // Continuously move bullets upwards
   useEffect(() => {
